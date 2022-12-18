@@ -6,6 +6,14 @@ const startingDir = os.homedir();
 let username = 'Anonymous';
 let currentDir = startingDir;
 
+const OS_FLAGS = {
+  'EOL': 'EOL',
+  'cpus': 'cpus',
+  'homedir': 'homedir',
+  'username': 'username',
+  'architecture': 'architecture',
+};
+
 const getMsg = {
   welcome: () => `Welcome to the File Manager, ${username}!`,
   goodbye: () => `Thank you for using File Manager, ${username}, goodbye!`,
@@ -57,15 +65,36 @@ const commands = {
       ...files,
     ]);
   },
+  ['os']: async (flag) => {
+    console.log(flag)
+    const osCommands = {
+      [OS_FLAGS.EOL]: () => os.EOL,
+      [OS_FLAGS.cpus]: () => os.cpus(),
+      [OS_FLAGS.homedir]: () => os.homedir(),
+      [OS_FLAGS.username]: () => os.userInfo().username,
+      [OS_FLAGS.architecture]: () => os.arch(),
+    };
+
+    const data = osCommands[flag]();
+    console.log(data);
+  }
 };
 
 const validateArgs = {
-  ['.exit']: args => args == '',
-  ['up']: args => args == '',
+  ['.exit']: args => [args !== ''],
+  ['up']: args => [args !== ''],
   ['cd']: (args) => {
-    return args !== '' && typeof args === 'string';
+    return [
+      (args === '' && typeof args !== 'string'),
+      args
+    ];
   },
-  ['ls']: args => args == '',
+  ['ls']: args => [args !== ''],
+  ['os']: args => {
+    const trimmed = args.trim().slice('--'.length);
+    const arg = Object.keys(OS_FLAGS).find(flag => flag === trimmed);
+    return arg ? [false, arg] : [true];
+  }
 };
 
 function start() {
@@ -106,9 +135,10 @@ function parseCmd(str) {
   if (!name) throw Error();
 
   const inputArgs = str.slice(name.length).trim();
-  if (!validateArgs[name](inputArgs)) throw Error();
+  const [err, args] = validateArgs[name](inputArgs);
+  if (err) throw Error();
 
-  return commands[name].bind({}, inputArgs);
+  return commands[name].bind({}, args);
 }
 
 function getUsername() {
