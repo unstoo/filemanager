@@ -31,6 +31,32 @@ const commands = {
     if (!isDir) throw Error();
     currentDir = maybeDir;
   },
+  ['ls']: async () => {
+    const names = await Fs.readdir(currentDir);
+    const fileStats = names.map(name => Fs.stat(path.resolve(currentDir, name)));
+    const results = await Promise.allSettled(fileStats);
+    const folders = [];
+    const files = [];
+    results
+      .filter(res => res.status === 'fulfilled')
+      .forEach(({ value }, index) => {
+        if (value.isDirectory()) {
+          folders.push({
+            Name: names[index],
+            Type: 'directory',
+          })
+        } else {
+          files.push({
+            Name: names[index],
+            Type: 'file',
+          })
+        }
+      })
+    console.table([
+      ...folders,
+      ...files,
+    ]);
+  },
 };
 
 const validateArgs = {
@@ -39,6 +65,7 @@ const validateArgs = {
   ['cd']: (args) => {
     return args !== '' && typeof args === 'string';
   },
+  ['ls']: args => args == '',
 };
 
 function start() {
