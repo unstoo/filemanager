@@ -32,9 +32,9 @@ const commands = {
     currentDir = maybeDir;
   },
   ['ls']: async () => {
-    const names = await Fs.readdir(currentDir);
-    const fileStats = names.map(name => Fs.stat(path.resolve(currentDir, name)));
-    const results = await Promise.allSettled(fileStats);
+    const names = (await Fs.readdir(currentDir)).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+    const statPromises = names.map(name => Fs.stat(path.resolve(currentDir, name)));
+    const results = await Promise.allSettled(statPromises);
     const folders = [];
     const files = [];
     results
