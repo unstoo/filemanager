@@ -3,6 +3,7 @@ const { promises: Fs, createReadStream, createWriteStream } = require('node:fs')
 const os = require('node:os');
 const { pipeline } = require('node:stream/promises');
 const crypto = require('node:crypto');
+const zlib = require('node:zlib');
 
 
 const log = console.log;
@@ -177,7 +178,47 @@ const commands = {
         log(`${hash.digest('hex')}`);
       }
     });
-  }
+  },
+  ['compress']: async ([pathToFile, destDir]) => {
+    const maybeSourcePath = path.resolve(currentDir, pathToFile);
+    const { name, ext } = path.parse(maybeSourcePath);
+    const source = createReadStream(maybeSourcePath);
+
+    const maybeDestPath = path.resolve(currentDir, destDir, name + ext + '.br');
+    const dest = createWriteStream(path.normalize(maybeDestPath), {
+      flags: 'wx+',
+    });
+
+    try {
+      await pipeline(
+        source,
+        zlib.createBrotliCompress(),
+        dest,
+      );
+    } catch (err) {
+      throw Error(err);
+    }
+  },
+  ['decompress']: async ([pathToFile, destDir]) => {
+    const maybeSourcePath = path.resolve(currentDir, pathToFile);
+    const { name, ext } = path.parse(maybeSourcePath);
+    const source = createReadStream(maybeSourcePath);
+    const removedBrExt = ext === '.br' ? '' : ext;
+    const maybeDestPath = path.resolve(currentDir, destDir, name + removedBrExt);
+    const dest = createWriteStream(path.normalize(maybeDestPath), {
+      flags: 'wx+',
+    });
+
+    try {
+      await pipeline(
+        source,
+        zlib.createBrotliDecompress(),
+        dest,
+      );
+    } catch (err) {
+      throw Error(err);
+    }
+  },
 };
 
 const validateArgs = {
@@ -250,6 +291,8 @@ const validateArgs = {
   ['cp']: args => validateArgs['rn'](args),
   ['mv']: args => validateArgs['rn'](args),
   ['hash']: args => validateArgs['cat'](args),
+  ['compress']: args => validateArgs['rn'](args),
+  ['decompress']: args => validateArgs['rn'](args),
 };
 
 function start() {
