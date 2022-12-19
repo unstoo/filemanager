@@ -70,7 +70,7 @@ const commands = {
   },
   ['os']: async (flag) => {
     const osCommands = {
-      [OS_FLAGS.EOL]: () => os.EOL,
+      [OS_FLAGS.EOL]: () => JSON.stringify(os.EOL),
       [OS_FLAGS.cpus]: () => os.cpus(),
       [OS_FLAGS.homedir]: () => os.homedir(),
       [OS_FLAGS.username]: () => os.userInfo().username,
@@ -110,6 +110,17 @@ const commands = {
       throw Error(err);
     }
   },
+  ['rn']: async ([filePath, newName]) => {
+    const maybePath = path.resolve(currentDir, filePath);
+    const parsedPath = path.parse(maybePath);
+    const renamedPath = path.format({
+      name: newName,
+      root: parsedPath.root,
+      dir: parsedPath.dir,
+    });
+    await Fs.copyFile(maybePath, renamedPath, Fs.constants.COPYFILE_EXCL);
+    await Fs.unlink(maybePath);
+  }
 };
 
 const validateArgs = {
@@ -148,6 +159,38 @@ const validateArgs = {
     isValid: args !== '',
     args,
   }),
+  ['rn']: args => {
+    const trimmed = args.trim();
+    const first = trimmed[0];
+    const quoteChar = [`"`, `'`].find(char => char === first);
+    if (!quoteChar) {
+      const splitArgs = trimmed.split(' ');
+      return splitArgs.length === 2 ? {
+        isValid: true,
+        args: splitArgs,
+      } : {
+        isValid: false,
+        args
+      }
+    }
+
+    const quoteIndecies = [];
+    trimmed.split('').forEach((char, index) => {
+      if (char === quoteChar) quoteIndecies.push(index);
+    })
+
+    return quoteIndecies.length === 4 ? {
+      isValid: true,
+      args: [
+        trimmed.slice(quoteIndecies[0] + 1, quoteIndecies[1]),
+        trimmed.slice(quoteIndecies[2] + 1, quoteIndecies[3]),
+      ],
+    } : {
+      isValid: false,
+      args,
+    };
+
+  }
 };
 
 function start() {
