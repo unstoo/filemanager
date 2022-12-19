@@ -2,7 +2,8 @@ const path = require('node:path');
 const { promises: Fs, createReadStream } = require('node:fs');
 const os = require('node:os');
 
-const print = console.log;
+const log = console.log;
+const logError = console.error;
 
 const startingDir = os.homedir();
 const username = getUsername();
@@ -26,7 +27,7 @@ const getMsg = {
 
 const commands = {
   ['.exit']: () => {
-    console.log(getMsg.goodbye());
+    log(getMsg.goodbye());
     process.exit(0);
   },
   ['up']: () => {
@@ -77,16 +78,15 @@ const commands = {
     };
 
     const data = osCommands[flag]();
-    console.log(data);
+    log(data);
   },
   ['cat']: async (filePath) => {
     const maybeFilePath = path.resolve(currentDir, filePath);
-    console.log({ maybeFilePath })
     const stream = createReadStream(maybeFilePath);
     stream.setEncoding('utf8');
     try {
       for await (const chunk of stream) {
-        print(chunk);
+        log(chunk);
       }
     } catch (err) {
       throw Error(err);
@@ -125,8 +125,8 @@ const validateArgs = {
 };
 
 function start() {
-  console.log(getMsg.welcome());
-  console.log(getMsg.cwd());
+  log(getMsg.welcome());
+  log(getMsg.cwd());
 
   process.stdin.on('data', async (data) => {
     const input = data.toString();
@@ -134,24 +134,21 @@ function start() {
     try {
       cmd = parseCmd(input)
     } catch (err) {
-      console.error(err)
-      console.log(getMsg.errInput());
+      logError(err)
+      log(getMsg.errInput());
     }
 
     try {
       cmd && await cmd()
     } catch (err) {
-      console.error(err)
-      console.log(getMsg.errOperation());
+      logError(err)
+      log(getMsg.errOperation());
     }
 
-    console.log(getMsg.cwd());
+    log(getMsg.cwd());
   });
 
-  process.on('SIGINT', () => {
-    console.log(getMsg.goodbye());
-    process.exit(0);
-  });
+  process.on('SIGINT', commands['.exit']);
 };
 
 
