@@ -2,6 +2,7 @@ const path = require('node:path');
 const { promises: Fs, createReadStream, createWriteStream } = require('node:fs');
 const os = require('node:os');
 const { pipeline } = require('node:stream/promises');
+const crypto = require('node:crypto');
 
 
 const log = console.log;
@@ -11,6 +12,7 @@ const startingDir = os.homedir();
 const username = getUsername();
 let currentDir = startingDir;
 
+const SECRET = 'secret';
 const OS_FLAGS = {
   'EOL': 'EOL',
   'cpus': 'cpus',
@@ -162,7 +164,20 @@ const commands = {
     }
     await Fs.unlink(maybeSourcePath);
   },
+  ['hash']: async (pathToFile) => {
+    const maybePath = path.resolve(currentDir, pathToFile);
+    const hash = crypto.createHash('sha256', SECRET);
+    const readable = createReadStream(maybePath);
 
+    readable.on('readable', () => {
+      const data = readable.read();
+      if (data)
+        hash.update(data);
+      else {
+        log(`${hash.digest('hex')}`);
+      }
+    });
+  }
 };
 
 const validateArgs = {
@@ -234,6 +249,7 @@ const validateArgs = {
   },
   ['cp']: args => validateArgs['rn'](args),
   ['mv']: args => validateArgs['rn'](args),
+  ['hash']: args => validateArgs['cat'](args),
 };
 
 function start() {
