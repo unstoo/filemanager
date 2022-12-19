@@ -305,15 +305,13 @@ function start() {
     try {
       cmd = parseCmd(input)
     } catch (err) {
-      logError(err)
-      log(getMsg.errInput());
+      logErr(getMsg.errInput());
     }
 
     try {
       cmd && await cmd()
     } catch (err) {
-      logError(err)
-      log(getMsg.errOperation());
+      logErr(getMsg.errOperation());
     }
 
     log(getMsg.cwd());
