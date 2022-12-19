@@ -91,6 +91,16 @@ const commands = {
     } catch (err) {
       throw Error(err);
     }
+  },
+  ['add']: async (fileName) => {
+    const fullPath = path.resolve(currentDir, `${fileName}`);
+    try {
+      await Fs.writeFile(fullPath, '', {
+        flag: 'wx'
+      });
+    } catch (err) {
+      throw Error(err);
+    }
   }
 };
 
@@ -119,6 +129,10 @@ const validateArgs = {
     };
   },
   ['cat']: args => ({
+    isValid: args !== '',
+    args,
+  }),
+  ['add']: args => ({
     isValid: args !== '',
     args,
   }),
