@@ -1,6 +1,8 @@
-const path = require('node:path')
-const { promises: Fs } = require('node:fs')
-const os = require('node:os')
+const path = require('node:path');
+const { promises: Fs, createReadStream } = require('node:fs');
+const os = require('node:os');
+
+const print = console.log;
 
 const startingDir = os.homedir();
 const username = getUsername();
@@ -77,6 +79,19 @@ const commands = {
     const data = osCommands[flag]();
     console.log(data);
   },
+  ['cat']: async (filePath) => {
+    const maybeFilePath = path.resolve(currentDir, filePath);
+    console.log({ maybeFilePath })
+    const stream = createReadStream(maybeFilePath);
+    stream.setEncoding('utf8');
+    try {
+      for await (const chunk of stream) {
+        print(chunk);
+      }
+    } catch (err) {
+      throw Error(err);
+    }
+  }
 };
 
 const validateArgs = {
@@ -89,7 +104,7 @@ const validateArgs = {
   ['cd']: (args) => {
     return {
       isValid: (args !== '' && typeof args === 'string'),
-      args
+      args,
     };
   },
   ['ls']: args => ({
@@ -100,9 +115,13 @@ const validateArgs = {
     const flag = Object.keys(OS_FLAGS).find(flag => flag === trimmed);
     return {
       isValid: !!flag,
-      args: flag
+      args: flag,
     };
   },
+  ['cat']: args => ({
+    isValid: args !== '',
+    args,
+  }),
 };
 
 function start() {
