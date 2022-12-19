@@ -101,7 +101,15 @@ const commands = {
     } catch (err) {
       throw Error(err);
     }
-  }
+  },
+  ['rm']: async (filePath) => {
+    const maybePath = path.resolve(currentDir, `${filePath}`);
+    try {
+      await Fs.unlink(maybePath);
+    } catch (err) {
+      throw Error(err);
+    }
+  },
 };
 
 const validateArgs = {
@@ -133,6 +141,10 @@ const validateArgs = {
     args,
   }),
   ['add']: args => ({
+    isValid: args !== '',
+    args,
+  }),
+  ['rm']: args => ({
     isValid: args !== '',
     args,
   }),
