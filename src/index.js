@@ -1,6 +1,8 @@
 const path = require('node:path');
-const { promises: Fs, createReadStream } = require('node:fs');
+const { promises: Fs, createReadStream, createWriteStream } = require('node:fs');
 const os = require('node:os');
+const { pipeline } = require('node:stream/promises');
+
 
 const log = console.log;
 const logError = console.error;
@@ -120,7 +122,26 @@ const commands = {
     });
     await Fs.copyFile(maybePath, renamedPath, Fs.constants.COPYFILE_EXCL);
     await Fs.unlink(maybePath);
-  }
+  },
+  ['cp']: async ([pathToFile, newDirPath]) => {
+    const maybeSourcePath = path.resolve(currentDir, pathToFile);
+    const { name, ext } = path.parse(maybeSourcePath);
+    const maybeDestPath = path.resolve(currentDir, newDirPath, name + ext);
+
+    const source = createReadStream(maybeSourcePath);
+    const dest = createWriteStream(path.normalize(maybeDestPath), {
+      flags: 'wx+',
+    });
+
+    try {
+      await pipeline(
+        source,
+        dest
+      );
+    } catch (err) {
+      throw Error(err);
+    }
+  },
 };
 
 const validateArgs = {
@@ -189,8 +210,9 @@ const validateArgs = {
       isValid: false,
       args,
     };
-
-  }
+  },
+  ['cp']: args => validateArgs['rn'](args),
+  ['mv']: args => validateArgs['rn'](args),
 };
 
 function start() {
