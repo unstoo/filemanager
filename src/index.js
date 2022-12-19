@@ -3,7 +3,7 @@ const { promises: Fs } = require('node:fs')
 const os = require('node:os')
 
 const startingDir = os.homedir();
-let username = 'Anonymous';
+const username = getUsername();
 let currentDir = startingDir;
 
 const OS_FLAGS = {
@@ -66,7 +66,6 @@ const commands = {
     ]);
   },
   ['os']: async (flag) => {
-    console.log(flag)
     const osCommands = {
       [OS_FLAGS.EOL]: () => os.EOL,
       [OS_FLAGS.cpus]: () => os.cpus(),
@@ -77,31 +76,38 @@ const commands = {
 
     const data = osCommands[flag]();
     console.log(data);
-  }
+  },
 };
 
 const validateArgs = {
-  ['.exit']: args => [args !== ''],
-  ['up']: args => [args !== ''],
+  ['.exit']: args => ({
+    isValid: args === '',
+  }),
+  ['up']: args => ({
+    isValid: args === '',
+  }),
   ['cd']: (args) => {
-    return [
-      (args === '' && typeof args !== 'string'),
+    return {
+      isValid: (args !== '' && typeof args === 'string'),
       args
-    ];
+    };
   },
-  ['ls']: args => [args !== ''],
+  ['ls']: args => ({
+    isValid: args === '',
+  }),
   ['os']: args => {
     const trimmed = args.trim().slice('--'.length);
-    const arg = Object.keys(OS_FLAGS).find(flag => flag === trimmed);
-    return arg ? [false, arg] : [true];
-  }
+    const flag = Object.keys(OS_FLAGS).find(flag => flag === trimmed);
+    return {
+      isValid: !!flag,
+      args: flag
+    };
+  },
 };
 
 function start() {
-  username = getUsername();
   console.log(getMsg.welcome());
   console.log(getMsg.cwd());
-
 
   process.stdin.on('data', async (data) => {
     const input = data.toString();
@@ -127,7 +133,7 @@ function start() {
     console.log(getMsg.goodbye());
     process.exit(0);
   });
-}
+};
 
 
 function parseCmd(str) {
@@ -135,16 +141,16 @@ function parseCmd(str) {
   if (!name) throw Error();
 
   const inputArgs = str.slice(name.length).trim();
-  const [err, args] = validateArgs[name](inputArgs);
-  if (err) throw Error();
+  const { isValid, args } = validateArgs[name](inputArgs);
+  if (!isValid) throw Error();
 
   return commands[name].bind({}, args);
-}
+};
 
 function getUsername() {
   const args = process.argv.slice(2);
   const nameArg = args.find(arg => arg.startsWith('--username='));
-  return nameArg.slice('--username='.length);
-}
+  return nameArg?.slice('--username='.length).trim() || 'Anonymus';
+};
 
-start()
+start();
