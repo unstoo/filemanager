@@ -142,6 +142,27 @@ const commands = {
       throw Error(err);
     }
   },
+  ['mv']: async ([pathToFile, newDirPath]) => {
+    const maybeSourcePath = path.resolve(currentDir, pathToFile);
+    const { name, ext } = path.parse(maybeSourcePath);
+    const maybeDestPath = path.resolve(currentDir, newDirPath, name + ext);
+
+    const source = createReadStream(maybeSourcePath);
+    const dest = createWriteStream(path.normalize(maybeDestPath), {
+      flags: 'wx+',
+    });
+
+    try {
+      await pipeline(
+        source,
+        dest
+      );
+    } catch (err) {
+      throw Error(err);
+    }
+    await Fs.unlink(maybeSourcePath);
+  },
+
 };
 
 const validateArgs = {
